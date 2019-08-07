@@ -19,7 +19,7 @@
     // 全体の大きさの倍率(標準1.0)
     const zoom = 1.0;
     // 不透明度(1から0)
-    const opacity = 0.75;
+    const opacity = 1;
 
     // 戦闘終了後の処理
     // 0:戦闘が終了しても継続する
@@ -27,7 +27,7 @@
     // 2:戦闘終了後に使用スキルを見直す
     const skip = 1;
     // アイコンが指定数以上でスライド開始(個数)
-    const slideBorder = 8;
+    const slideBorder = 9;
 
     // アイコン追加時間(ms)
     const addIconDuration = 1000;
@@ -39,7 +39,7 @@
     const afterIconTimes = 50;
     // 終了から消えるまでの時間(ms)
     // skipが1か２の場合のみ
-    const exitTime = 5000;
+    const exitTime = 10000;
 
     /* 範囲から外したい対象名 */
     const aoeDenyList = [
@@ -246,6 +246,7 @@
 	"3F23": jobPath["gnb"] + "フェイテッドサークル",
 	"3F24": jobPath["gnb"] + "ブラッドソイル",
 	"3F25": jobPath["gnb"] + "ブラスティングゾーン",
+	"3F0E": jobPath["gnb"] + "ロイヤルガード",
 
       /* 白魔道士 */
       "77": jobPath["whm"] + "stone",
