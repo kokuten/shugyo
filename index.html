@@ -74,7 +74,8 @@
       mch: iconBattlePath + "12_MCH/",
       blm: iconBattlePath + "13_BLM/",
       smn: iconBattlePath + "14_SMN/",
-      rdm: iconBattlePath + "15_RDM/"
+      rdm: iconBattlePath + "15_RDM/",
+      gnb: iconBattlePath + "16_GNB/"
     };
     const rollPath = {
       tank: jobPath["pld"] + "TankRollAction/",
@@ -89,7 +90,7 @@
     =============================*/
 
     // アクションID収集モード(新規アクション探索用)
-    const stackActionId = false;
+    const stackActionId = true;
 
     const actionIcons = {
       /* ジェネラル */
@@ -187,6 +188,9 @@
       "1CDB": jobPath["war"] + "upheaval",
       "1CDC": jobPath["war"] + "shake_it_off",
       "1CDD": jobPath["war"] + "inner_release",
+      "404F": jobPath["war"] + "カオティックサイクロン",
+      "4051": jobPath["war"] + "インナーカオス",
+      "4050": jobPath["war"] + "原初の猛り",
 
       /* 暗黒騎士 */
       E21: jobPath["drk"] + "hard_slash",
@@ -214,6 +218,34 @@
       "1CDF": jobPath["drk"] + "quietus",
       "1CE0": jobPath["drk"] + "bloodspiller",
       "1CE1": jobPath["drk"] + "the_blackest_night",
+
+      /* ガンブレーカー */
+	"3F09": jobPath["gnb"] + "キーンエッジ",
+	"3F0A": jobPath["gnb"] + "ノー・マーシー",
+	"3F0B": jobPath["gnb"] + "ブルータルシェル",
+	"3F0C": jobPath["gnb"] + "カモフラージュ",
+	"3F0D": jobPath["gnb"] + "デーモンスライス",
+	"3F0F": jobPath["gnb"] + "サンダーバレット",
+	"3F11": jobPath["gnb"] + "ソリッドバレル",
+	"3F12": jobPath["gnb"] + "ビートファング",
+	"3F13": jobPath["gnb"] + "サベッジクロウ",
+	"3F14": jobPath["gnb"] + "ネビュラ",
+	"3F15": jobPath["gnb"] + "デーモンスローター",
+	"3F16": jobPath["gnb"] + "ウィケッドタロン",
+	"3F17": jobPath["gnb"] + "オーロラ",
+	"3F18": jobPath["gnb"] + "ボーライド",
+	"3F19": jobPath["gnb"] + "ソニックブレイク",
+	"3F1A": jobPath["gnb"] + "ラフディバイド",
+	"3F1C": jobPath["gnb"] + "ジャギュラーリップ",
+	"3F1D": jobPath["gnb"] + "アブドメンテアー",
+	"3F1E": jobPath["gnb"] + "アイガウジ",
+	"3F1F": jobPath["gnb"] + "バウショック",
+	"3F20": jobPath["gnb"] + "ハート・オブ・ライト",
+	"3F21": jobPath["gnb"] + "ハート・オブ・ストーン",
+	"3F22": jobPath["gnb"] + "バーストストライク",
+	"3F23": jobPath["gnb"] + "フェイテッドサークル",
+	"3F24": jobPath["gnb"] + "ブラッドソイル",
+	"3F25": jobPath["gnb"] + "ブラスティングゾーン",
 
       /* 白魔道士 */
       "77": jobPath["whm"] + "stone",
