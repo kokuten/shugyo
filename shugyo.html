@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Shugyo</title>
+  <script>
+    "use strict"; // OverlayPlugin用
+    /*=============================
+        個別設定
+    =============================*/
+
+    // 自キャラのフルネーム(複数可)
+    const youNameList = [
+      "Potempa Cuffs",
+      "Your Name2",
+    ];
+
+    // 全体の大きさの倍率(標準1.0)
+    const zoom = 1.0;
+    // 不透明度(1から0)
+    const opacity = 0.75;
+
+    // 戦闘終了後の処理
+    // 0:戦闘が終了しても継続する
+    // 1:戦闘終了後なにもせずに消える
+    // 2:戦闘終了後に使用スキルを見直す
+    const skip = 1;
+    // アイコンが指定数以上でスライド開始(個数)
+    const slideBorder = 10;
+
+    // アイコン追加時間(ms)
+    const addIconDuration = 1000;
+    // スライド時間(ms)
+    const slideDuration = 1000;
+
+    // 戦闘後アイコン1個あたりのスライド時間(ms)
+    // skipが２の場合のみ
+    const afterIconTimes = 50;
+    // 終了から消えるまでの時間(ms)
+    // skipが1か２の場合のみ
+    const exitTime = 5000;
+
+    /* 範囲から外したい対象名 */
+    const aoeDenyList = [
+      "カーバンクル・エメラルド",
+      "カーバンクル・トパーズ",
+      "カーバンクル・ルビー",
+      "ガルーダ・エギ",
+      "タイタン・エギ",
+      "イフリート・エギ",
+      "フェアリー・エオス",
+      "フェアリー・セレネ",
+      "オートタレット・ルーク",
+      "オートタレット・ビショップ"
+    ];
+
+    /* アイコンファイルパス */
+    const iconBattlePath = "FFXIVIcons%20Battle%28PvE%29/";
+    const iconOtherPath = "FFXIVIcons%20MainCommand%20%28Others%29/";
+    const iconGeneralPath = iconOtherPath + "02_General/";
+    const jobPath = {
+      pld: iconBattlePath + "01_PLD/",
+      war: iconBattlePath + "02_WAR/",
+      drk: iconBattlePath + "03_DRK/",
+      whm: iconBattlePath + "04_WHM/",
+      sch: iconBattlePath + "05_SCH/",
+      ast: iconBattlePath + "06_AST/",
+      mnk: iconBattlePath + "07_MNK/",
+      drg: iconBattlePath + "08_DRG/",
+      nin: iconBattlePath + "09_NIN/",
+      sam: iconBattlePath + "10_SAM/",
+      brd: iconBattlePath + "11_BRD/",
+      mch: iconBattlePath + "12_MCH/",
+      blm: iconBattlePath + "13_BLM/",
+      smn: iconBattlePath + "14_SMN/",
+      rdm: iconBattlePath + "15_RDM/"
+    };
+    const rollPath = {
+      tank: jobPath["pld"] + "TankRollAction/",
+      healer: jobPath["whm"] + "HealerRollAction/",
+      melee: jobPath["mnk"] + "MeleeRollAction/",
+      physicalRanged: jobPath["brd"] + "PhysicalRangedRollAction/",
+      magicalRanged: jobPath["blm"] + "MagicalRangedRollAction/"
+    };
+
+    /*=============================
+        各種定義
+    =============================*/
+
+    // アクションID収集モード(新規アクション探索用)
+    const stackActionId = false;
+
+    const actionIcons = {
+      /* ジェネラル */
+      "03": iconGeneralPath + "sprint",
+
+      // メレーLB
+      C8: iconGeneralPath + "limit_break",
+      C9: iconGeneralPath + "limit_break",
+      CA: iconGeneralPath + "limit_break",
+      "1092": iconGeneralPath + "limit_break",
+      "1093": iconGeneralPath + "limit_break",
+      "1EB5": iconGeneralPath + "limit_break",
+
+      // キャスターLB
+      CB: iconGeneralPath + "limit_break",
+      CC: iconGeneralPath + "limit_break",
+      CD: iconGeneralPath + "limit_break",
+      "1096": iconGeneralPath + "limit_break",
+      "1EB6": iconGeneralPath + "limit_break",
+
+      // レンジLB
+      "108E": iconGeneralPath + "limit_break",
+      "108F": iconGeneralPath + "limit_break",
+      "1094": iconGeneralPath + "limit_break",
+      "1095": iconGeneralPath + "limit_break",
+
+      // ヒーラーLB
+      CE: iconGeneralPath + "limit_break",
+      CF: iconGeneralPath + "limit_break",
+      D0: iconGeneralPath + "limit_break",
+      "1097": iconGeneralPath + "limit_break",
+      "1098": iconGeneralPath + "limit_break",
+
+      // タンクLB
+      C5: iconGeneralPath + "limit_break",
+      C6: iconGeneralPath + "limit_break",
+      C7: iconGeneralPath + "limit_break",
+      "1090": iconGeneralPath + "limit_break",
+      "1091": iconGeneralPath + "limit_break",
+
+      /* ナイト */
+      "09": jobPath["pld"] + "fast_blade",
+      "0B": jobPath["pld"] + "savage_blade",
+      "0E": jobPath["pld"] + "flash",
+      "0F": jobPath["pld"] + "riot_blade",
+      "10": jobPath["pld"] + "shield_bash",
+      "11": jobPath["pld"] + "sentinel",
+      "13": jobPath["pld"] + "tempered_will",
+      "14": jobPath["pld"] + "fight_or_flight",
+      "15": jobPath["pld"] + "rage_of_halone",
+      "16": jobPath["pld"] + "bulwark",
+      "17": jobPath["pld"] + "circle_of_scorn",
+      "18": jobPath["pld"] + "shield_lob",
+      "19": jobPath["pld"] + "shield_swipe",
+      "1A": jobPath["pld"] + "sword_oath",
+      "1B": jobPath["pld"] + "cover",
+      "1C": jobPath["pld"] + "shield_oath",
+      "1D": jobPath["pld"] + "spirits_within",
+      "1E": jobPath["pld"] + "hallowed_ground",
+      DD2: jobPath["pld"] + "goring_blade",
+      DD3: jobPath["pld"] + "royal_authority",
+      DD4: jobPath["pld"] + "divine_veil",
+      DD5: jobPath["pld"] + "clemency",
+      DD6: jobPath["pld"] + "sheltron",
+      "1CD5": jobPath["pld"] + "total_eclipse",
+      "1CD6": jobPath["pld"] + "intervention",
+      "1CD7": jobPath["pld"] + "requiescat",
+      "1CD8": jobPath["pld"] + "holy_spirit",
+      "1CD9": jobPath["pld"] + "passage_of_arms",
+
+      /* 戦士 */
+      "1F": jobPath["war"] + "heavy_swing",
+      "23": jobPath["war"] + "skull_sunder",
+      "25": jobPath["war"] + "maim",
+      "26": jobPath["war"] + "berserk",
+      "28": jobPath["war"] + "thrill_of_battle",
+      "29": jobPath["war"] + "overpower",
+      "2A": jobPath["war"] + "storm%27s_path",
+      "2B": jobPath["war"] + "holmgang",
+      "2C": jobPath["war"] + "vengeance",
+      "2D": jobPath["war"] + "storm%27s_eye",
+      "2E": jobPath["war"] + "tomahawk",
+      "2F": jobPath["war"] + "butcher%27s_block",
+      "30": jobPath["war"] + "defiance",
+      "31": jobPath["war"] + "inner_beast",
+      "32": jobPath["war"] + "unchained",
+      "33": jobPath["war"] + "steel_cyclone",
+      "34": jobPath["war"] + "infuriate",
+      DDC: jobPath["war"] + "deliverance",
+      DDD: jobPath["war"] + "fell_cleave",
+      DDE: jobPath["war"] + "decimate",
+      DDF: jobPath["war"] + "raw_intuition",
+      DE0: jobPath["war"] + "equilibrium",
+      "1CDA": jobPath["war"] + "onslaught",
+      "1CDB": jobPath["war"] + "upheaval",
+      "1CDC": jobPath["war"] + "shake_it_off",
+      "1CDD": jobPath["war"] + "inner_release",
+
+      /* 暗黒騎士 */
+      E21: jobPath["drk"] + "hard_slash",
+      E23: jobPath["drk"] + "spinning_slash",
+      E25: jobPath["drk"] + "unleash",
+      E27: jobPath["drk"] + "syphon_strike",
+      E28: jobPath["drk"] + "unmend",
+      E29: jobPath["drk"] + "blood_weapon",
+      E2B: jobPath["drk"] + "power_slash",
+      E2C: jobPath["drk"] + "darkside",
+      E2D: jobPath["drk"] + "grit",
+      E2F: jobPath["drk"] + "blood_price",
+      E30: jobPath["drk"] + "souleater",
+      E31: jobPath["drk"] + "dark_passenger",
+      E32: jobPath["drk"] + "dark_mind",
+      E33: jobPath["drk"] + "dark_arts",
+      E34: jobPath["drk"] + "shadow_wall",
+      E36: jobPath["drk"] + "living_dead",
+      E37: jobPath["drk"] + "salted_earth",
+      E38: jobPath["drk"] + "plunge",
+      E39: jobPath["drk"] + "abyssal_drain",
+      E3A: jobPath["drk"] + "sole_survivor",
+      E3B: jobPath["drk"] + "carve_and_spit",
+      "1CDE": jobPath["drk"] + "delirium",
+      "1CDF": jobPath["drk"] + "quietus",
+      "1CE0": jobPath["drk"] + "bloodspiller",
+      "1CE1": jobPath["drk"] + "the_blackest_night",
+
+      /* 白魔道士 */
+      "77": jobPath["whm"] + "stone",
+      "78": jobPath["whm"] + "cure",
+      "79": jobPath["whm"] + "aero",
+      "7C": jobPath["whm"] + "medica",
+      "7D": jobPath["whm"] + "raise",
+      "7F": jobPath["whm"] + "stone_ii",
+      "80": jobPath["whm"] + "repose",
+      "83": jobPath["whm"] + "cure_iii",
+      "84": jobPath["whm"] + "aero_ii",
+      "85": jobPath["whm"] + "medica_ii",
+      "86": jobPath["whm"] + "fluid_aura",
+      "87": jobPath["whm"] + "cure_ii",
+      "88": jobPath["whm"] + "presence_of_mind",
+      "89": jobPath["whm"] + "regen",
+      "8B": jobPath["whm"] + "holy",
+      "8C": jobPath["whm"] + "benediction",
+      DF0: jobPath["whm"] + "stone_iii",
+      DF1: jobPath["whm"] + "asylum",
+      DF2: jobPath["whm"] + "tetragrammaton",
+      DF3: jobPath["whm"] + "assize",
+      DF4: jobPath["whm"] + "aero_iii",
+      "1D06": jobPath["whm"] + "thin_air",
+      "1D07": jobPath["whm"] + "stone_iv",
+      "1D08": jobPath["whm"] + "divine_benison",
+      "1D09": jobPath["whm"] + "plenary_indulgence",
+
+      // 学者
+      A3: jobPath["sch"] + "ruin",
+      A4: jobPath["sch"] + "bio",
+      A5: jobPath["sch"] + "summon",
+      A6: jobPath["sch"] + "aetherflow",
+      A7: jobPath["sch"] + "energy_drain",
+      A8: jobPath["sch"] + "miasma",
+      AA: jobPath["sch"] + "summon_ii",
+      AB: jobPath["sch"] + "sustain",
+      AC: jobPath["sch"] + "ruin_ii",
+      AE: jobPath["sch"] + "bane",
+      AD: jobPath["sch"] + "resurrection",
+      B0: jobPath["sch"] + "rouse",
+      B1: jobPath["sch"] + "miasma_ii",
+      B2: jobPath["sch"] + "bio_ii",
+      B3: jobPath["sch"] + "shadow_flare",
+      B9: jobPath["sch"] + "adloquium",
+      BA: jobPath["sch"] + "succor",
+      BC: jobPath["sch"] + "sacred_soil",
+      BD: jobPath["sch"] + "lustrate",
+      BE: jobPath["sch"] + "physick",
+      DFF: jobPath["sch"] + "indomitability",
+      E00: jobPath["sch"] + "broil",
+      E01: jobPath["sch"] + "deployment_tactics",
+      E02: jobPath["sch"] + "emergency_tactics",
+      E03: jobPath["sch"] + "dissipation",
+      "1D0A": jobPath["sch"] + "excogitation",
+      "1D0B": jobPath["sch"] + "broil_ii",
+      "1D0C": jobPath["sch"] + "chain_stratagem",
+      "1D0D": jobPath["sch"] + "aetherpact",
+      "1EBD": jobPath["sch"] + "dissolve_union",
+
+      // 占星術師
+      E06: jobPath["ast"] + "draw",
+      E07: jobPath["ast"] + "royal_road",
+      E09: jobPath["ast"] + "redraw",
+      E0A: jobPath["ast"] + "benefic",
+      E0B: jobPath["ast"] + "aspected_benefic",
+      E08: jobPath["ast"] + "spread",
+      E0C: jobPath["ast"] + "malefic",
+      E0E: jobPath["ast"] + "malefic_ii",
+      E0F: jobPath["ast"] + "combust",
+      E10: jobPath["ast"] + "helios",
+      E11: jobPath["ast"] + "aspected_helios",
+      E13: jobPath["ast"] + "ascend",
+      E14: jobPath["ast"] + "diurnal_sect",
+      E15: jobPath["ast"] + "nocturnal_sect",
+      E16: jobPath["ast"] + "lightspeed",
+      E18: jobPath["ast"] + "combust_ii",
+      E1A: jobPath["ast"] + "benefic_ii",
+      E1B: jobPath["ast"] + "time_dilation",
+      E1C: jobPath["ast"] + "synastry",
+      E1D: jobPath["ast"] + "collective_unconscious",
+      E1E: jobPath["ast"] + "essential_dignity",
+      E1F: jobPath["ast"] + "gravity",
+      E20: jobPath["ast"] + "celestial_opposition",
+      "1132": jobPath["ast"] + "the_bole",
+      "1133": jobPath["ast"] + "the_arrow",
+      "1138": jobPath["ast"] + "the_bole", // 範囲
+      "113B": jobPath["ast"] + "the_ewer", // 範囲
+      "113C": jobPath["ast"] + "the_spire", // 範囲
+      "113D": jobPath["ast"] + "the_balance",
+      "1140": jobPath["ast"] + "the_spear",
+      "1141": jobPath["ast"] + "the_ewer",
+      "1142": jobPath["ast"] + "the_spire",
+      "1143": jobPath["ast"] + "the_balance", // 範囲
+      "1145": jobPath["ast"] + "the_arrow", // 範囲
+      "1146": jobPath["ast"] + "the_spear", // 範囲
+      "1225": jobPath["ast"] + "empty_road",
+      "1226": jobPath["ast"] + "undraw_spread",
+      "1D0F": jobPath["ast"] + "earthly_star",
+      "1D12": jobPath["ast"] + "malefic_iii",
+      "1D13": jobPath["ast"] + "minor_arcana",
+      "1D14": jobPath["ast"] + "lord_of_crowns",
+      "1D15": jobPath["ast"] + "lady_of_crowns",
+      "1D18": jobPath["ast"] + "sleeve_draw",
+      "2084": jobPath["ast"] + "stellar_detonation",
+      "259D": jobPath["ast"] + "undraw",
+
+      // モンク
+      "35": jobPath["mnk"] + "bootshine",
+      "36": jobPath["mnk"] + "true_strike",
+      "38": jobPath["mnk"] + "snap_punch",
+      "3B": jobPath["mnk"] + "internal_release",
+      "3C": jobPath["mnk"] + "fists_of_earth",
+      "3D": jobPath["mnk"] + "twin_snakes",
+      "3E": jobPath["mnk"] + "arm_of_the_destroyer",
+      "3F": jobPath["mnk"] + "fists_of_fire",
+      "40": jobPath["mnk"] + "steel_peak",
+      "41": jobPath["mnk"] + "mantra",
+      "42": jobPath["mnk"] + "demolish",
+      "43": jobPath["mnk"] + "howling_fist",
+      "45": jobPath["mnk"] + "perfect_balance",
+      "46": jobPath["mnk"] + "rockbreaker",
+      "47": jobPath["mnk"] + "shoulder_tackle",
+      "48": jobPath["mnk"] + "one_ilm_punch",
+      "49": jobPath["mnk"] + "fists_of_wind",
+      "4A": jobPath["mnk"] + "dragon_kick",
+      DD7: jobPath["mnk"] + "tornado_kick",
+      DD8: jobPath["mnk"] + "purification",
+      DD9: jobPath["mnk"] + "elixir_field",
+      DDA: jobPath["mnk"] + "meditation",
+      DDB: jobPath["mnk"] + "the_forbidden_chakra",
+      "10A6": jobPath["mnk"] + "form_shift",
+      "1CE2": jobPath["mnk"] + "riddle_of_earth",
+      "1CE3": jobPath["mnk"] + "riddle_of_fire",
+      "1CE4": jobPath["mnk"] + "brotherhood",
+      "1EB8": jobPath["mnk"] + "earth_tackle",
+      "1EB9": jobPath["mnk"] + "wind_tackle",
+      "1EBA": jobPath["mnk"] + "fire_tackle",
+      "1EBC": jobPath["mnk"] + "riddle_of_wind",
+
+      /* 竜騎士 */
+      "4B": jobPath["drg"] + "true_thrust",
+      "4E": jobPath["drg"] + "vorpal_thrust",
+      "4F": jobPath["drg"] + "heavy_thrust",
+      "51": jobPath["drg"] + "impulse_drive",
+      "53": jobPath["drg"] + "life_surge",
+      "54": jobPath["drg"] + "full_thrust",
+      "55": jobPath["drg"] + "blood_for_blood",
+      "56": jobPath["drg"] + "doom_spike",
+      "57": jobPath["drg"] + "disembowel",
+      "58": jobPath["drg"] + "chaos_thrust",
+      "5A": jobPath["drg"] + "piercing_talon",
+      "5C": jobPath["drg"] + "jump",
+      "5E": jobPath["drg"] + "elusive_jump",
+      "5F": jobPath["drg"] + "spineshatter_dive",
+      "60": jobPath["drg"] + "dragonfire_dive",
+      DE1: jobPath["drg"] + "blood_of_the_dragon",
+      DE2: jobPath["drg"] + "fang_and_claw",
+      DE3: jobPath["drg"] + "geirskogul",
+      DE4: jobPath["drg"] + "wheeling_thrust",
+      DE5: jobPath["drg"] + "battle_litany",
+      "1CE5": jobPath["drg"] + "sonic_thrust",
+      "1CE6": jobPath["drg"] + "dragon_sight",
+      "1CE7": jobPath["drg"] + "mirage_dive",
+      "1CE8": jobPath["drg"] + "nastrond",
+
+      /* 忍者 */
+      "8C0": jobPath["nin"] + "spinning_edge",
+      "8C1": jobPath["nin"] + "shade_shift",
+      "8C2": jobPath["nin"] + "gust_slash",
+      "8C5": jobPath["nin"] + "hide",
+      "8C6": jobPath["nin"] + "assassinate",
+      "8C7": jobPath["nin"] + "throwing_dagger",
+      "8C8": jobPath["nin"] + "mug",
+      "8CE": jobPath["nin"] + "death_blossom",
+      "8CF": jobPath["nin"] + "aeolian_edge",
+      "8D0": jobPath["nin"] + "jugulate",
+      "8D1": jobPath["nin"] + "shadow_fang",
+      "8D2": jobPath["nin"] + "trick_attack",
+      "8D3": jobPath["nin"] + "ten",
+      "8D5": jobPath["nin"] + "chi",
+      "8D6": jobPath["nin"] + "shukuchi",
+      "8D7": jobPath["nin"] + "jin",
+      "8D8": jobPath["nin"] + "kassatsu",
+      "8D9": jobPath["nin"] + "fuma_shuriken",
+      "8DA": jobPath["nin"] + "katon",
+      "8DB": jobPath["nin"] + "raiton",
+      "8DC": jobPath["nin"] + "hyoton",
+      "8DD": jobPath["nin"] + "huton",
+      "8DE": jobPath["nin"] + "doton",
+      "8DF": jobPath["nin"] + "suiton",
+      "8E0": jobPath["nin"] + "ninjutsu",
+      DEB: jobPath["nin"] + "armor_crush",
+      DEC: jobPath["nin"] + "shadewalker",
+      DED: jobPath["nin"] + "smoke_screen",
+      DEE: jobPath["nin"] + "dream_within_a_dream",
+      DEF: jobPath["nin"] + "duality",
+      "1CE9": jobPath["nin"] + "hellfrog_medium",
+      "1CEA": jobPath["nin"] + "bhavacakra",
+      "1CEB": jobPath["nin"] + "ten_chi_jin",
+
+      /* 侍 */
+      "1D35": jobPath["sam"] + "hakaze",
+      "1D36": jobPath["sam"] + "jinpu",
+      "1D37": jobPath["sam"] + "shifu",
+      "1D38": jobPath["sam"] + "yukikaze",
+      "1D39": jobPath["sam"] + "gekko",
+      "1D3A": jobPath["sam"] + "kasha",
+      "1D3B": jobPath["sam"] + "fuga",
+      "1D3C": jobPath["sam"] + "mangetsu",
+      "1D3D": jobPath["sam"] + "oka",
+      "1D3E": jobPath["sam"] + "enpi",
+      "1D3F": jobPath["sam"] + "midare_setsugekka",
+      "1D40": jobPath["sam"] + "tenka_goken",
+      "1D41": jobPath["sam"] + "higanbana",
+      "1D42": jobPath["sam"] + "hissatsu_shinten",
+      "1D43": jobPath["sam"] + "hissatsu_kyuten",
+      "1D44": jobPath["sam"] + "hissatsu_gyoten",
+      "1D45": jobPath["sam"] + "hissatsu_yaten",
+      "1D46": jobPath["sam"] + "hissatsu_kaiten",
+      "1D47": jobPath["sam"] + "hagakure",
+      "1D48": jobPath["sam"] + "hissatsu_guren",
+      "1D49": jobPath["sam"] + "meditate",
+      "1D4A": jobPath["sam"] + "third_eye",
+      "1D4B": jobPath["sam"] + "meikyo_shisui",
+      "1D4C": jobPath["sam"] + "ageha",
+      "1D4D": jobPath["sam"] + "hissatsu_seigan",
+      "1D4E": jobPath["sam"] + "merciful_eyes",
+
+      /* 詩人 */
+      "61": jobPath["brd"] + "heavy_shot",
+      "62": jobPath["brd"] + "straight_shot",
+      "64": jobPath["brd"] + "venomous_bite",
+      "65": jobPath["brd"] + "raging_strikes",
+      "67": jobPath["brd"] + "misery%27s_end",
+      "6A": jobPath["brd"] + "quick_nock",
+      "6B": jobPath["brd"] + "barrage",
+      "6E": jobPath["brd"] + "bloodletter",
+      "70": jobPath["brd"] + "repelling_shot",
+      "71": jobPath["brd"] + "windbite",
+      "72": jobPath["brd"] + "mage%27s_ballad",
+      "73": jobPath["brd"] + "foe_requiem",
+      "74": jobPath["brd"] + "army%27s_paeon",
+      "75": jobPath["brd"] + "rain_of_death",
+      "76": jobPath["brd"] + "battle_voice",
+      DE6: jobPath["brd"] + "empyreal_arrow",
+      DE7: jobPath["brd"] + "the_wanderer%27s_minuet",
+      DE8: jobPath["brd"] + "iron_jaws",
+      DE9: jobPath["brd"] + "the_warden%27s_paean",
+      DEA: jobPath["brd"] + "sidewinder",
+      "1CEC": jobPath["brd"] + "pitch_perfect",
+      "1CED": jobPath["brd"] + "troubadour",
+      "1CEE": jobPath["brd"] + "caustic_bite",
+      "1CEF": jobPath["brd"] + "stormbite",
+      "1CF0": jobPath["brd"] + "nature%27s_minne",
+      "1CF1": jobPath["brd"] + "refulgent_arrow",
+
+      /* 機工士 */
+      B30: jobPath["mch"] + "rook_autoturret",
+      B31: jobPath["mch"] + "bishop_autoturret",
+      B32: jobPath["mch"] + "split_shot",
+      B33: jobPath["mch"] + "reload",
+      B34: jobPath["mch"] + "slug_shot",
+      B36: jobPath["mch"] + "spread_shot",
+      B38: jobPath["mch"] + "hot_shot",
+      B39: jobPath["mch"] + "clean_shot",
+      B3A: jobPath["mch"] + "gauss_round",
+      B3B: jobPath["mch"] + "heartbreak",
+      B3C: jobPath["mch"] + "reassemble",
+      B3E: jobPath["mch"] + "wildfire",
+      B3F: jobPath["mch"] + "quick_reload",
+      B40: jobPath["mch"] + "gauss_barrel",
+      B41: jobPath["mch"] + "rapid_fire",
+      B45: jobPath["mch"] + "hypercharge",
+      B47: jobPath["mch"] + "dismantle",
+      B48: jobPath["mch"] + "blank",
+      B4A: jobPath["mch"] + "ricochet",
+      "1CF2": jobPath["mch"] + "cooldown",
+      "1CF3": jobPath["mch"] + "heated_split_shot",
+      "1CF4": jobPath["mch"] + "heated_slug_shot",
+      "1CF5": jobPath["mch"] + "heated_clean_shot",
+      "1CF6": jobPath["mch"] + "barrel_stabilizer",
+      "1CF7": jobPath["mch"] + "rook_overload",
+      "1CFA": jobPath["mch"] + "flamethrower",
+      "2337": jobPath["mch"] + "remove_barrel",
+      "249C": jobPath["mch"] + "bishop_overload",
+
+      // 黒魔道士
+      "8D": jobPath["blm"] + "fire",
+      "8E": jobPath["blm"] + "blizzard",
+      "90": jobPath["blm"] + "thunder",
+      "91": jobPath["blm"] + "sleep",
+      "92": jobPath["blm"] + "blizzard_ii",
+      "93": jobPath["blm"] + "fire_ii",
+      "95": jobPath["blm"] + "transpose",
+      "98": jobPath["blm"] + "fire_iii",
+      "99": jobPath["blm"] + "thunder_iii",
+      "9A": jobPath["blm"] + "blizzard_iii",
+      "9B": jobPath["blm"] + "aetherial_manipulation",
+      "9C": jobPath["blm"] + "scathe",
+      "9D": jobPath["blm"] + "manaward",
+      "9E": jobPath["blm"] + "convert",
+      "9F": jobPath["blm"] + "freeze",
+      A2: jobPath["blm"] + "flare",
+      DF5: jobPath["blm"] + "ley_lines",
+      DF6: jobPath["blm"] + "sharpcast",
+      DF7: jobPath["blm"] + "enochian",
+      DF8: jobPath["blm"] + "blizzard_iv",
+      DF9: jobPath["blm"] + "fire_iv",
+      "1CFB": jobPath["blm"] + "between_the_lines",
+      "1CFC": jobPath["blm"] + "thunder_iv",
+      "1CFD": jobPath["blm"] + "triplecast",
+      "1CFE": jobPath["blm"] + "foul",
+      "1D17": jobPath["blm"] + "thunder_ii",
+
+      // 召喚士
+      //"A3": jobPath["sch"] + "ruin",
+      //"A4": jobPath["sch"] + "bio",
+      //"A5": jobPath["sch"] + "summon",
+      //"A6": jobPath["sch"] + "aetherflow",
+      //"A7": jobPath["sch"] + "energy_drain",
+      //"A8": jobPath["sch"] + "miasma",
+      //"AA": jobPath["sch"] + "summon_ii",
+      //"AB": jobPath["sch"] + "sustain",
+      //"AC": jobPath["sch"] + "ruin_ii",
+      //"AE": jobPath["sch"] + "bane",
+      //"AD": jobPath["sch"] + "resurrection",
+      //"B0": jobPath["sch"] + "rouse",
+      //"B2": jobPath["sch"] + "bio_ii",
+      //"B3": jobPath["sch"] + "shadow_flare",
+      B4: jobPath["smn"] + "summon_iii",
+      B5: jobPath["smn"] + "fester",
+      B6: jobPath["smn"] + "tri-bind",
+      B8: jobPath["smn"] + "enkindle",
+      //"BE": jobPath["sch"] + "physick",
+      DFA: jobPath["smn"] + "painflare",
+      DFB: jobPath["smn"] + "ruin_iii",
+      DFC: jobPath["smn"] + "tri-disaster",
+      DFD: jobPath["smn"] + "dreadwyrm_trance",
+      DFE: jobPath["smn"] + "deathflare",
+      "1CFF": jobPath["smn"] + "aetherpact",
+      "1D00": jobPath["smn"] + "bio_iii",
+      "1D01": jobPath["smn"] + "miasma_iii",
+      "1D02": jobPath["smn"] + "ruin_iv",
+      "1D03": jobPath["smn"] + "summon_bahamut",
+      "1D05": jobPath["smn"] + "enkindle_bahamut",
+
+      // 赤魔道士
+      "1D4F": jobPath["rdm"] + "jolt",
+      "1D50": jobPath["rdm"] + "riposte",
+      "1D51": jobPath["rdm"] + "verthunder",
+      "1D52": jobPath["rdm"] + "corps-a-corps",
+      "1D53": jobPath["rdm"] + "veraero",
+      "1D54": jobPath["rdm"] + "tether",
+      "1D55": jobPath["rdm"] + "scatter",
+      "1D56": jobPath["rdm"] + "verfire",
+      "1D57": jobPath["rdm"] + "verstone",
+      "1D58": jobPath["rdm"] + "zwerchhau",
+      "1D59": jobPath["rdm"] + "moulinet",
+      "1D5A": jobPath["rdm"] + "vercure",
+      "1D5B": jobPath["rdm"] + "displacement",
+      "1D5C": jobPath["rdm"] + "redoublement",
+      "1D5D": jobPath["rdm"] + "fleche",
+      "1D5E": jobPath["rdm"] + "acceleration",
+      "1D5F": jobPath["rdm"] + "contre_sixte",
+      "1D60": jobPath["rdm"] + "embolden",
+      "1D61": jobPath["rdm"] + "manafication",
+      "1D62": jobPath["rdm"] + "impact",
+      "1D63": jobPath["rdm"] + "verraise",
+      "1D64": jobPath["rdm"] + "jolt_ii",
+      "1D65": jobPath["rdm"] + "verflare",
+      "1D66": jobPath["rdm"] + "verholy",
+      "1D67": jobPath["rdm"] + "enchanted_riposte",
+      "1D68": jobPath["rdm"] + "enchanted_zwerchhau",
+      "1D69": jobPath["rdm"] + "enchanted_redoublement",
+      "1D6A": jobPath["rdm"] + "enchanted_moulinet",
+
+      /** ロールアクション **/
+      /* タンク */
+      "1D6B": rollPath["tank"] + "rampart",
+      "1D6C": rollPath["tank"] + "convalescence",
+      "1D6D": rollPath["tank"] + "provoke",
+      "1D6E": rollPath["tank"] + "awareness",
+      "1D6F": rollPath["tank"] + "reprisal",
+      "1D70": rollPath["tank"] + "anticipation",
+      "1D71": rollPath["tank"] + "shirk",
+      "1D72": rollPath["tank"] + "interject",
+      "1D73": rollPath["tank"] + "ultimatum",
+      "1D74": rollPath["tank"] + "low_blow",
+
+      /* ヒーラー */
+      "1D86": rollPath["healer"] + "break",
+      "1D87": rollPath["healer"] + "surecast",
+      "1D89": rollPath["healer"] + "swiftcast",
+      "1D8A": rollPath["healer"] + "lucid_dreaming",
+      "1D8F": rollPath["healer"] + "cleric_stance",
+      "1D90": rollPath["healer"] + "esuna",
+      "1D91": rollPath["healer"] + "eye_for_an_eye",
+      "1D92": rollPath["healer"] + "largesse",
+      "1D93": rollPath["healer"] + "rescue",
+      "1D94": rollPath["healer"] + "protect",
+
+      /* メレー */
+      "1D75": rollPath["melee"] + "second_wind",
+      "1D76": rollPath["melee"] + "bloodbath",
+      "1D77": rollPath["melee"] + "goad",
+      "1D78": rollPath["melee"] + "invigorate",
+      "1D79": rollPath["melee"] + "diversion",
+      "1D7A": rollPath["melee"] + "true_north",
+      "1D7B": rollPath["melee"] + "crutch",
+      "1D7C": rollPath["melee"] + "arm%27s_length",
+      "1D7D": rollPath["melee"] + "feint",
+      "1EB7": rollPath["melee"] + "leg_sweep",
+
+      /* レンジ */
+      //"1D75": rollPath["physicalRanged"] + "second_wind",
+      //"1D78": rollPath["physicalRanged"] + "invigorate",
+      "1D7E": rollPath["physicalRanged"] + "palisade",
+      "1D7F": rollPath["physicalRanged"] + "head_graze",
+      "1D80": rollPath["physicalRanged"] + "arm_graze",
+      "1D81": rollPath["physicalRanged"] + "foot_graze",
+      "1D82": rollPath["physicalRanged"] + "leg_graze",
+      "1D83": rollPath["physicalRanged"] + "tactician",
+      "1D84": rollPath["physicalRanged"] + "refresh",
+      "1D85": rollPath["physicalRanged"] + "peloton",
+
+      /* キャスター */
+      //"1D79": rollPath["magicalRanged"] + "diversion",
+      //"1D86": rollPath["magicalRanged"] + "break",
+      //"1D87": rollPath["magicalRanged"] + "surecast",
+      "1D88": rollPath["magicalRanged"] + "addle",
+      //"1D89": rollPath["magicalRanged"] + "swiftcast",
+      //"1D8A": rollPath["magicalRanged"] + "lucid_dreaming",
+      "1D8B": rollPath["magicalRanged"] + "apocatastasis",
+      "1D8C": rollPath["magicalRanged"] + "drain",
+      "1D8D": rollPath["magicalRanged"] + "mana_shift",
+      "1D8E": rollPath["magicalRanged"] + "erase"
+    };
+
+    let headNodes = 0;
+    let active = false;
+    let countDown = false;
+    let actionCollection = [];
+    let youJob = "";
+    let stackIcons = 0;
+    let actionHistory = [null, 0, null, 0];
+
+    /*=============================
+        表示用スクリプト
+    =============================*/
+    // MiniParse用データ受信
+    document.addEventListener("onOverlayDataUpdate", function miniParse(e) {
+      const isActive = (function (is) {
+        // OverlayPlugin用
+        if (is == "true") {
+          return true;
+        } else if (is == "false") {
+          return false;
+        } else {
+          return is;
+        }
+      })(e.detail.isActive);
+
+      if (isActive === true && active === false) {
+        if (countDown === false) {
+          initialize();
+        }
+      } else if (isActive === false && active === true) {
+        countDown = false;
+        afterAnimation(isActive);
+      }
+
+      // アクションID収集用
+      if (stackActionId && e.detail.Combatant["YOU"]) {
+        youJob = e.detail.Combatant["YOU"]["Job"].toLowerCase();
+        if (isActive === false && active === true) {
+          // 連想配列からオーダーを作成
+          const order = function (hash) {
+            const arr = [];
+            for (let key in hash) {
+              arr.push([parseInt(key, 16), hash[key]]);
+            }
+            arr.sort(function (a, b) {
+              return a[0] - b[0];
+            });
+            return arr;
+          };
+          const orderAction = order(actionCollection);
+          let result = "";
+          for (let i = 0; i < orderAction.length; i++) {
+            result =
+              result +
+              '\n"' +
+              orderAction[i][0].toString(16).toUpperCase() +
+              '": jobPath["' +
+              youJob +
+              '"] + "' +
+              orderAction[i][1] +
+              '",';
+          }
+          console.log(result);
+        }
+      }
+
+      active = isActive;
+    });
+
+    /* Log確認 */
+    document.addEventListener("onLogLine", function logParse(e) {
+      const container = (function (log) {
+        if (typeof log == "string") {
+          return log.split("|");
+        } else {
+          // OverlayPlugin用
+          if (log.opcode == 0) {
+            return ["00", null, log.payload[0], null, log.payload[2]];
+          } else if (log.opcode == 21) {
+            return ["21", null, null, log.payload[1], log.payload[2], log.payload[3]];
+          } else if (log.opcode == 22) {
+            return ["22", null, null, log.payload[1], log.payload[2], log.payload[3], null, log.payload[5]];
+          } else {
+            return ["none"];
+          }
+        }
+      })(e.detail);
+
+      if (container[0] == "00") {
+        // 表示ログの処理
+        if (
+          // カウントダウン開始時に初期化
+          (container[2] == "00b9" ||
+            container[2] == "0139" ||
+            container[2] == "0239") &&
+          container[4].indexOf("戦闘開始まで") !== -1
+        ) {
+          initialize();
+          countDown = true;
+        } else if (
+          (container[2] == "00b9" ||
+            container[2] == "0139" ||
+            container[2] == "0239") &&
+          container[4].indexOf("戦闘開始カウントがキャンセルされました") !== -1
+        ) {
+          countDown = false;
+        } else if (
+          // Echoトリガー
+          container[2] == "0038" &&
+          container[4] == "shugyo"
+        ) {
+          initialize(true);
+        }
+        return;
+      } else if (container[0] == "21") {
+        // キャラ指定ログの確認
+        if (youNameList.indexOf(container[3]) !== -1) {
+          addIcon(container[4]);
+        }
+
+        //　データ収集用
+        if (stackActionId && youJob) {
+          actionCollection[container[4]] = container[5];
+        }
+        return;
+      } else if (container[0] == "22") {
+        // 範囲ログの確認
+        if (aoeDenyList.indexOf(container[7]) !== -1) {
+          return;
+        } else if (youNameList.indexOf(container[3]) !== -1) {
+          const currentTime = new Date().getTime();
+          const list = document.getElementById("list");
+          if (
+            actionHistory[0] == container[4] &&
+            currentTime - actionHistory[1] < 500
+          ) {
+            const stackIndex = actionHistory[2];
+            const currentStackIcons = actionHistory[3]++;
+            const stackDuration = currentStackIcons * 100;
+            addIcon(container[4], stackDuration);
+
+            setTimeout(function () {
+              list.childNodes[stackIndex].innerText = currentStackIcons + 1;
+            }, (addIconDuration / 1.5) + stackDuration);
+          } else {
+            actionHistory[0] = container[4];
+            actionHistory[1] = currentTime;
+            actionHistory[2] = list.childElementCount;
+            actionHistory[3] = 1;
+            addIcon(container[4]);
+          }
+        }
+
+        //　データ収集用
+        if (stackActionId && youJob) {
+          actionCollection[container[4]] = container[5];
+        }
+        return;
+      }
+    });
+
+    /* 読み込み後 */
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementsByTagName("body")[0].style.zoom = zoom;
+      document.getElementById("list").style.opacity = opacity;
+      headNodes = document.getElementsByTagName("head")[0].childNodes.length;
+    });
+
+    // アイコン追加
+    function addIcon(id, stackDuration) {
+      if (actionIcons[id] === undefined) return;
+      const list = document.getElementById("list");
+      const action = document.createElement("span");
+
+      // Base64指定用
+      if (!actionIcons[id].indexOf("url(")) {
+        action.style.backgroundImage = actionIcons[id];
+      } else {
+        action.style.backgroundImage = "url(" + actionIcons[id] + ".png)";
+      }
+
+      if (stackDuration) {
+        action.style.opacity = 0;
+        setTimeout(function () {
+          addAnimation(
+            action,
+            list.offsetWidth + stackIcons * 46,
+            stackIcons * 46 - 46,
+            addIconDuration,
+            "stack"
+          );
+        }, stackDuration);
+      } else {
+        addAnimation(
+          action,
+          list.offsetWidth + stackIcons * 46,
+          stackIcons * 46,
+          addIconDuration
+        );
+        stackIcons = stackIcons + 1;
+      }
+
+      list.appendChild(action);
+
+      const visibleIcons =
+        (stackIcons * 46 + parseFloat(list.style.left)) / 46;
+      if (stackIcons < slideBorder) {
+        list.style.left = "0px";
+      } else if (visibleIcons > slideBorder) {
+        slideAnimation(
+          list,
+          parseFloat(list.style.left),
+          parseFloat(list.style.left) - (visibleIcons - slideBorder) * 46,
+          slideDuration
+        );
+      }
+    }
+
+    /* カウントアニメーション計算部 */
+    function calcAnimation(timeCurrent, numStart, numEnd, duration, easing) {
+      const timePass = (function (t) {
+        if (easing == "linear") {
+          return t;
+        } else if (easing == "easeInQuad") {
+          return t * t;
+        } else {
+          // easeOutQuint
+          return 1 + --t * t * t * t * t;
+        }
+      })(timeCurrent / duration);
+      const numDiff =
+        Math.sign(numStart - numEnd) == 1
+          ? Math.floor(numStart - (numStart - numEnd) * timePass)
+          : Math.floor(numStart + (numEnd - numStart) * timePass);
+
+      return timeCurrent >= duration ? numEnd : numDiff;
+    }
+
+    // アイコン追加アニメーション
+    function addAnimation(element, start, end, duration, stack) {
+      const timeStart = new Date().getTime();
+      (function count() {
+        const timeCurrent = new Date().getTime() - timeStart;
+        const resultLeft = calcAnimation(timeCurrent, start, end, duration);
+        element.style.left = resultLeft + "px";
+
+        if (stack) {
+          const resultOpacity = calcAnimation(timeCurrent, 1000, 0, duration, "easeInQuad") / 1000;
+          element.style.opacity = resultOpacity;
+        }
+
+        if (timeCurrent < duration) {
+          setTimeout(count, 10);
+        }
+      })();
+      if (stack) {
+        element.style.zIndex = -1;
+        element.style.opacity = 1;
+      }
+    }
+
+    // リスト移動アニメーション
+    function slideAnimation(element, start, end, duration) {
+      if (start == end) return;
+      const timeStart = new Date().getTime();
+      (function count() {
+        const timeCurrent = new Date().getTime() - timeStart;
+        const resultLeft = calcAnimation(
+          timeCurrent,
+          start,
+          end,
+          duration,
+          "linear"
+        );
+        if (resultLeft < parseFloat(document.getElementById("list").style.left))
+          element.style.left = resultLeft + "px";
+
+        if (timeCurrent < duration) {
+          setTimeout(count, 10);
+        }
+      })();
+    }
+
+    // 戦闘終了時アニメーション
+    function afterAnimation(isActive) {
+      if (skip === 0) return;
+      const head = document.getElementsByTagName("head")[0];
+      const newStyle = document.createElement("style");
+      const list = document.getElementById("list");
+      const areaRight = list.lastElementChild
+        ? parseFloat(list.lastElementChild.style.left) * -1 + list.offsetWidth - 46
+        : 0;
+      const durationBack = stackIcons > slideBorder ? (1 + stackIcons) * afterIconTimes : 0;
+      const afterEnd = areaRight < 0 ? areaRight : 0;
+      const durationGo = areaRight < 0 ? (afterEnd / 46) * slideDuration * -1 : 0;
+      const slideBack =
+        "@keyframes slideBack{" + [
+          "0% {left: " + list.style.left + "}",
+          "100% {left: 0px}"
+        ].join("") + "}";
+      const slideGo =
+        "@keyframes slideGo{" + [
+          "0% {left: 0px}",
+          "100% {left: " + afterEnd + "px}"
+        ].join("") + "}";
+      newStyle.appendChild(
+        document.createTextNode([slideBack, slideGo].join("\n"))
+      );
+      head.appendChild(newStyle);
+
+      if (skip === 2)
+        list.style.animation =
+          "slideBack " +
+          durationBack +
+          "ms cubic-bezier(0.65, 0.05, 0.36, 1) both" +
+          ",slideGo " +
+          durationGo +
+          "ms " +
+          (exitTime + durationBack) +
+          "ms linear forwards";
+
+      const boxDuration = skip === 2
+        ? durationBack + durationGo + exitTime + exitTime
+        : exitTime;
+      const afterStart = new Date().getTime();
+      (function stay() {
+        if (
+          isActive === true ||
+          document.getElementsByTagName("head")[0].childNodes.length <= headNodes
+        ) return;
+
+        const afterCurrent = new Date().getTime() - afterStart;
+        if (afterCurrent < boxDuration) {
+          setTimeout(stay, 1000);
+        } else {
+          const box = document.getElementById("box");
+          box.style.animation =
+            "areaOut " +
+            slideDuration +
+            "ms cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards";
+        }
+      })();
+    }
+
+    // 初期化
+    function initialize(echo) {
+      if (skip === 0 && stackIcons > 1 && echo === undefined) return;
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      actionCollection = [];
+      stackIcons = 0;
+      actionHistory = [null, 0, null, 0];
+
+      const box = document.getElementById("box");
+      box.style.animation =
+        "areaIn " + slideDuration + "ms cubic-bezier(0.22, 0.61, 0.36, 1) both";
+
+      const head = document.getElementsByTagName("head")[0];
+      if (head.childNodes.length > headNodes) {
+        while (head.childNodes[headNodes] !== undefined) {
+          head.removeChild(head.childNodes[headNodes]);
+        }
+      }
+    }
+
+    // OverlayPlugin用のつまみ
+    document.addEventListener("onOverlayStateUpdate", function (e) {
+      if (!e.detail.isLocked) {
+        displayResizeHandle();
+      } else {
+        hideResizeHandle();
+      }
+    });
+
+    // ウィンドウ幅調整つまみの表示非表示
+    function displayResizeHandle() {
+      document.documentElement.classList.add("resizeHandle");
+    }
+
+    function hideResizeHandle() {
+      document.documentElement.classList.remove("resizeHandle");
+    }
+  </script>
+  <style>
+    body,
+    html {
+      margin: 0;
+    }
+
+    html {
+      height: 100%;
+      padding: 8px;
+      overflow: hidden;
+      background-color: transparent;
+    }
+
+    #box {
+      background-color: rgba(0, 0, 0, 0.5);
+      box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 7px 4px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      opacity: 0;
+    }
+
+    #list {
+      height: 46px;
+      position: relative;
+    }
+
+    span {
+      width: 46px;
+      height: 100%;
+      position: absolute;
+      text-align: center;
+
+      color: #e2ebf5;
+      font-size: 34px;
+      font-family: "Meiryo";
+      text-shadow: -1px 0 3px #291b02, 0 1px 3px #291b02, 1px 0 3px #291b02, 0 -1px 3px #291b02;
+    }
+
+    @keyframes areaIn {
+      0% {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0%);
+      }
+    }
+
+    @keyframes areaOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0%);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+    }
+
+    .resizeHandle {
+      background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4zjOaXUAAAAGZJREFUOE+ljEEOACEIA92f+f9XaQ822EUgajJJC4xtvu+BPnEXFSBff7Bk5N8yw8pgW2aojLwdRHhy+YOTjMzhiUgGDB6ZjMyiVGTAgeV0rB1wqMusL7iIjrVb0mPtypMMGC7k1geoEhcn0OEM6wAAAABJRU5ErkJggg==);
+      background-position: bottom right;
+      background-repeat: no-repeat;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="box">
+    <div id="list" style="left:0px">
+    </div>
+  </div>
+</body>
+<script src="ACTWebSocket.js"></script>
+
+</html>
